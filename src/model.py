@@ -13,7 +13,7 @@ Here's our deep structure:
 from tensorflow import keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPool2D, Flatten, Dense
-from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers import BatchNormalization, Dropout, Activation
 
 
 class ResidualUnit(keras.layers.Layer): 
@@ -51,21 +51,53 @@ class ResidualUnit(keras.layers.Layer):
         return self.activation(Z + skip_Z)
 
 
-model = Sequential()
+resnet = Sequential()
+
 # Input Layers
-model.add(Conv2D(64, 7, strides=2, input_shape=[256, 256, 3],
+resnet.add(Conv2D(64, 7, strides=2, input_shape=[256, 256, 3],
                  padding='same'))
-model.add(BatchNormalization())
-model.add(keras.layers.Activation('relu'))
-model.add(MaxPool2D(pool_size=3, strides=2, padding='same'))
+resnet.add(BatchNormalization())
+resnet.add(keras.layers.Activation('relu'))
+resnet.add(MaxPool2D(pool_size=3, strides=2, padding='same'))
 
 # Deep Layers
 prev_filters = 64
 for filters in [64] * 3 + [128] * 4 + [256] * 6 + [512] * 3:
     strides = 1 if filters == prev_filters else 2
-    model.add(ResidualUnit(filters, strides=strides))
+    resnet.add(ResidualUnit(filters, strides=strides))
 
 # Output Dense
-model.add(keras.layers.GlobalAvgPool2D())
-model.add(Flatten())
-model.add(Dense(10, activation='softmax'))
+resnet.add(keras.layers.GlobalAvgPool2D())
+resnet.add(Flatten())
+resnet.add(Dense(10, activation='softmax'))
+
+simple_model = Sequential()
+chanDim=-1
+simple_model.add(Conv2D(128, (3, 3), padding="same", input_shape=(128, 128, 3)))
+simple_model.add(Activation("relu"))
+simple_model.add(BatchNormalization(axis=chanDim))
+simple_model.add(MaxPool2D(pool_size=(3, 3)))
+simple_model.add(Dropout(0.25))
+simple_model.add(Conv2D(128, (3, 3), padding="same"))
+simple_model.add(Activation("relu"))
+simple_model.add(BatchNormalization(axis=chanDim))
+simple_model.add(Conv2D(128, (3, 3), padding="same"))
+simple_model.add(Activation("relu"))
+simple_model.add(BatchNormalization(axis=chanDim))
+simple_model.add(MaxPool2D(pool_size=(2, 2)))
+simple_model.add(Dropout(0.25))
+simple_model.add(Conv2D(128, (3, 3), padding="same"))
+simple_model.add(Activation("relu"))
+simple_model.add(BatchNormalization(axis=chanDim))
+simple_model.add(Conv2D(128, (3, 3), padding="same"))
+simple_model.add(Activation("relu"))
+simple_model.add(BatchNormalization(axis=chanDim))
+simple_model.add(MaxPool2D(pool_size=(2, 2)))
+simple_model.add(Dropout(0.25))
+simple_model.add(Flatten())
+simple_model.add(Dense(1024))
+simple_model.add(Activation("relu"))
+simple_model.add(BatchNormalization())
+simple_model.add(Dropout(0.5))
+simple_model.add(Dense(10))
+simple_model.add(Activation("softmax"))
